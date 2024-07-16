@@ -7,10 +7,12 @@
 """
 TODO: Add module docstring
 """
-import requests
 from ipywidgets import DOMWidget, Widget, widget_serialization
 from traitlets import Unicode, List, Instance, CFloat, Bool, Dict, Int, Tuple, Float
 from ._frontend import module_name, module_version
+from geopy.geocoders import Nominatim
+import json
+
 
 def_loc = [0.0, 0.0]
 
@@ -63,15 +65,12 @@ class WindLayer(Layer):
     vfile =Dict().tag(sync=True)
 
 
-
 class HeatmapLayer(Layer):
     _view_name = Unicode('HeatmapLayerView').tag(sync=True)
     _model_name = Unicode('HeatmapLayerModel').tag(sync=True)
     points= List([]).tag(sync=True)
     blur =Int(15).tag(sync=True)
     radius = Int(8).tag(sync=True)
-
-
 
 
 class BaseOverlay(DOMWidget): 
@@ -173,23 +172,19 @@ class Map(DOMWidget):
     def clear_layers(self):
         self.layers = []
 
+    def get_country_abbreviation(self):
+        with open('zones.json', 'r', encoding='utf-8') as f:
+            zones_data = json.load(f)
+        
+        for abbreviation, info in zones_data.items():
+            bounding_box = info.get('bounding_box')
+            if bounding_box:
+                if (bounding_box[0][0] <= self.coordinates[0] <= bounding_box[1][0] and
+                    bounding_box[0][1] <= self.coordinates[1] <= bounding_box[1][1]):
+                    return abbreviation
+        return 'Unknown'
+
     def _handle_clicked_coordinates(self):
-        coordinates = self.coordinates
-        print(f'Clicked coordinates: {coordinates}')
-        #country = self.get_country_from_coordinates(coordinates)
-        #print(f'Country: {country}')
-'''
-    def get_country_from_coordinates(self, coordinates):
-        try:
-            lat, lon = coordinates
-            url = f'https://nominatim.openstreetmap.org/reverse?format=json&lat={lat}&lon={lon}'
-            response = requests.get(url)
-            if response.status_code == 200:
-                data = response.json()
-                address = data.get('address', {})
-                return address.get('country', 'Unknown')
-            else:
-                return 'Unknown'
-        except Exception as e:
-            return 'Unknown'
-        '''
+            print(f'Clicked coordinates: {self.coordinates}')
+            coordinates= self.coordinates
+            print(coordinates)
